@@ -51,8 +51,51 @@ resource "aws_s3_bucket_lifecycle_configuration" "log_archive" {
         id = "delete-old-logs"
         status = "Enabled"
 
+        filter{}
+
         expiration {
             days = 90
         }
     }
+}
+resource "aws_s3_bucket_policy" "log_archive" {
+    bucket = aws_s3_bucket.log_archive.id
+
+    policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+            {
+                Sid = "AWSCloudTrailAclCheck"
+                Effect = "Allow"
+                Principal = {
+                    Service = "cloudtrail.amazonaws.com"
+                }
+                Action = "s3:GetBucketAcl"
+                Resource = "arn:aws:s3:::centralised-log-archive-686316017813/AWSLogs/*"
+            },
+            {
+                Sid = "AWSCloudTrailWrite"
+                Effect = "Allow"
+                Principal = {
+                    Service = "cloudtrail.amazonaws.com"
+                }
+                Action = "s3:PutObject"
+                Resource = "arn:aws:s3:::centralised-log-archive-686316017813/AWSLogs/*"
+                Condition = {
+                    StringEquals = {
+                        "s3:x-amz-acl" = "bucket-owner-full-control"
+                    }
+                }
+            },
+            {
+                Sid = "DenyDelete" 
+                Effect = "Deny"
+                Principal = {
+                    AWS = "*"
+                }
+                Action = "s3:DeleteObject"
+                Resource = "arn:aws:s3:::centralised-log-archive-686316017813/*"
+            }
+        ]
+    })
 }
