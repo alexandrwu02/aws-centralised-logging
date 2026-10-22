@@ -99,3 +99,16 @@ resource "aws_s3_bucket_policy" "log_archive" {
         ]
     })
 }
+resource "aws_cloudtrail" "main" {
+    name = "centralised-trail"
+    s3_bucket_name = "centralised-log-archive-686316017813"
+    kms_key_id = aws_kms_key.log_encryption_key.arn
+    include_global_service_events = true
+    is_multi_region_trail = true
+    enable_log_file_validation = true
+
+    event_selector {
+        read_write_type = "All"
+        include_management_events = true
+    }
+}
