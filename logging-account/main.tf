@@ -112,3 +112,12 @@ resource "aws_cloudtrail" "main" {
         include_management_events = true
     }
 }
+data "aws_vpc" "default" {
+    default = true
+}
+resource "aws_flow_log" "main" {
+    vpc_id = data.aws_vpc.default.id
+    traffic_type = "ALL"
+    iam_role_arn = "arn:aws:iam::686316017813:role/VPCFlowLogsRole"
+    log_destination = "aws_s3_bucket.log_archive.arn"
+}
