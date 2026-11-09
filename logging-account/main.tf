@@ -71,7 +71,7 @@ resource "aws_s3_bucket_policy" "log_archive" {
                     Service = "cloudtrail.amazonaws.com"
                 }
                 Action = "s3:GetBucketAcl"
-                Resource = "arn:aws:s3:::centralised-log-archive-686316017813/AWSLogs/*"
+                Resource = "arn:aws:s3:::centralised-log-archive-686316017813"
             },
             {
                 Sid = "AWSCloudTrailWrite"
@@ -86,6 +86,29 @@ resource "aws_s3_bucket_policy" "log_archive" {
                         "s3:x-amz-acl" = "bucket-owner-full-control"
                     }
                 }
+            },
+            {
+                Sid = "AWSLogDeliveryWrite"
+                Effect = "Allow"
+                Principal = {
+                    Service = "delivery.logs.amazonaws.com"
+                }
+                Action = "s3:PutObject"
+                Resource = "arn:aws:s3:::centralised-log-archive-686316017813/AWSLogs/*"
+                Condition = {
+                    StringEquals = {
+                        "s3:x-amz-acl" = "bucket-owner-full-control"
+                    }
+                }
+            },
+            {
+                Sid = "AWSLogDeliveryAclCheck"
+                Effect = "Allow"
+                Principal = {
+                    Service = "delivery.logs.amazonaws.com"
+                }
+                Action = "s3:GetBucketAcl"
+                Resource = "arn:aws:s3:::centralised-log-archive-686316017813"
             },
             {
                 Sid = "DenyDelete" 
@@ -118,6 +141,7 @@ data "aws_vpc" "default" {
 resource "aws_flow_log" "main" {
     vpc_id = data.aws_vpc.default.id
     traffic_type = "ALL"
-    iam_role_arn = "arn:aws:iam::686316017813:role/VPCFlowLogsRole"
-    log_destination = "aws_s3_bucket.log_archive.arn"
+    log_destination_type = "s3"
+    log_destination = aws_s3_bucket.log_archive.arn
 }
+
