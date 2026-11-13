@@ -13,6 +13,39 @@ resource "aws_kms_key" "log_encryption_key" {
     description = "KMS key for encrypting centralised CloudTrail logs"
     deletion_window_in_days = 10
     enable_key_rotation = true
+
+    policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+            {
+                Sid = "EnableRootAccountAccess"
+                Effect = "Allow"
+                Principal = {
+                    AWS = "arn:aws:iam::686316017813:root"
+                }
+                Action = "kms:*"
+                Resource = "*"
+            },
+            {
+                Sid = "AllowCloudTrailEncrypt"
+                Effect = "Allow"
+                Principal = {
+                    Service = "cloudtrail.amazonaws.com"
+                }
+                Action = "kms:GenerateDataKey*"
+                Resource = "*"
+            },
+            {
+                Sid = "AllowLogDeliveryEncrypt"
+                Effect = "Allow"
+                Principal = {
+                    Service = "delivery.logs.amazonaws.com"
+                }
+                Action = ["kms:GenerateDataKey*", "kms:Decrypt"]
+                Resource = "*"
+            }
+        ]
+    })
 }
 resource "aws_kms_alias" "log_encryption_key_alias" {
     name = "alias/cloudtrail-logs"
@@ -144,4 +177,10 @@ resource "aws_flow_log" "main" {
     log_destination_type = "s3"
     log_destination = aws_s3_bucket.log_archive.arn
 }
-
+resource "aws_cloudwatch_log_group" "cloudtrail_logs" {
+    name = "/aws/cloudtrail/centralised-trail"
+    retention_in_days = 90
+}
+resource "aws_sns_topic" "logging_alerts" {
+    name = "logging-alerts"
+}
